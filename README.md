@@ -47,24 +47,39 @@ iex(maxi1@127.0.0.1)1> Node.list()
 
 ## 1b. using `:rpc`
 
-We will choose one node to be the central "master" of our information, and use `:rpc` to execute functions on this node.
+We will distribute the location database to all nodes in the cluster. We will simply use `:rpc` for this.
 
-Useful functions:
-`Node.list/0`
-`Enum.sort/1`
-`hd/1`
-
-Use the :rpc module to send all update and find requests to a single node in the cluster.
+1. Send updates to all nodes in the cluster using `:rpc`.
+2. Implement a TTL of 2s on updates to prevent stale information from being served (in case of a netsplit for example).
 
 ## optional 1c. using `send/2`
 
-Use `send/2` instead of `:rpc`.
+Use `send/2` instead of `:rpc`. This will help us avoid bottlenecks in `:rpc`.
 
 Reminder: `{name, node}`.
 
-## 2a. distributed location database
+## 2. distributed location database
 
-Now we have designated one node to be our location database. Let's make this more robust. We will use [libring](https://github.com/bitwalker/libring) to push location updates to N/3 nodes.
+Now we have a "distributed location database", but there is no way for nodes to recover if things get out of date (except the TTL).
+
+1. Use delta_crdt to make the database eventually consistent.
+
+Note: information on nodes can still be out of date, but after a netsplit the database will globally converge.
+
+## 3. distributed taxi state
+
+A taxi can be entered and exited, but we can't allow more than one customer to enter a taxi.
+
+We will use Horde to distribute taxi processes among the nodes in the cluster. We will register and access the taxi processes using Horde.Registry. Horde.Registry will also keep them unique.
+
+Horde.DynamicSupervisor will ensure that if a node goes down, that the taxi processes are restarted on another node.
+
+1. start taxi state processes using Horde.DynamicSupervisor
+2. register processes with Horde.Registry
+
+## 4. handling network partitions
+
+1. read the docs of Horde and figure out how to handle registry conflicts.
 
 ## Installation
 
@@ -82,4 +97,3 @@ end
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/maxi_taxi](https://hexdocs.pm/maxi_taxi).
-
