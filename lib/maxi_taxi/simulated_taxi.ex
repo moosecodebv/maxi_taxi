@@ -70,8 +70,11 @@ defmodule MaxiTaxi.SimulatedTaxi do
     end
   end
 
+  defp normalize_direction({x, y}) when x == 0 and y == 0, do: {0, 0}
+
   defp normalize_direction({x, y}) do
     divisor = :math.sqrt(:math.pow(x, 2) + :math.pow(y, 2))
+
     {x / divisor, y / divisor}
   end
 

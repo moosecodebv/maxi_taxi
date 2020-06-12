@@ -5,17 +5,27 @@ defmodule MaxiTaxi.Application do
 
   use Application
 
+  @dev Mix.env() == :dev
+
   def start(_type, _args) do
     children =
       [
         {Cluster.Supervisor, [libcluster_config(), [name: MaxiTaxi.ClusterSupervisor]]},
         MaxiTaxi.TaxiLocationsDatabase
-      ] ++ Enum.map(1..10, fn _ -> MaxiTaxi.SimulatedTaxi end)
+      ] ++ simulated_taxis()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: MaxiTaxi.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp simulated_taxis do
+    if @dev do
+      Enum.map(1..10, fn _ -> MaxiTaxi.SimulatedTaxi end)
+    else
+      []
+    end
   end
 
   defp libcluster_config do

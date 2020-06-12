@@ -7,7 +7,8 @@ defmodule MaxiTaxi.MixProject do
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases()
     ]
   end
 
@@ -22,7 +23,13 @@ defmodule MaxiTaxi.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:libcluster, "~> 3.2"}
+      {:libcluster, "~> 3.2"},
+      {:local_cluster, "~> 1.1", only: :test},
+      {:schism, "~> 1.0", only: :test}
     ]
+  end
+
+  defp aliases do
+    [test: "test --no-start --seed 0 --trace --max-failures 1"]
   end
 end
