@@ -52,10 +52,12 @@ defmodule MaxiTaxiTest do
     [n1, n2, n3] = LocalCluster.start_nodes("maxi-cluster-", 3)
 
     :ok = :rpc.call(n1, TaxiLocationsDatabase, :update, ["1", {0.01, 0.01}])
+    Process.sleep(200)
 
     Schism.partition([n2])
 
     :ok = :rpc.call(n1, TaxiLocationsDatabase, :update, ["2", {0.012, 0.012}])
+    Process.sleep(200)
 
     assert {:ok, "1"} = :rpc.call(n3, TaxiLocationsDatabase, :find, [{0.01, 0.01}])
     assert {:ok, "2"} = :rpc.call(n3, TaxiLocationsDatabase, :find, [{0.012, 0.012}])
@@ -67,5 +69,10 @@ defmodule MaxiTaxiTest do
     Process.sleep(500)
 
     assert {:ok, "2"} = :rpc.call(n2, TaxiLocationsDatabase, :find, [{0.012, 0.012}])
+  end
+
+  test "can reserve and unreserve a taxi" do
+    ### do I want this part? :doubt:
+    ### going to be for Horde
   end
 end
