@@ -60,8 +60,6 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
   end
 
   def on_diffs(diffs) do
-    {node(), :ets.all()} |> IO.inspect(label: :ets_tables)
-
     Enum.each(diffs, fn
       {:add, taxi, {location, updated_at}} ->
         :ets.insert(@table, {taxi, location, updated_at})

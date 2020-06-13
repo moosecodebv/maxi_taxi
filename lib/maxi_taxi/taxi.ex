@@ -54,11 +54,11 @@ defmodule MaxiTaxi.Taxi do
   end
 
   defp via_tuple(name) do
-    {:via, Registry, {MaxiTaxi.TaxiRegistry, name}}
+    {:via, Horde.Registry, {MaxiTaxi.TaxiRegistry, name}}
   end
 
   def ensure_started(taxi_id) do
-    DynamicSupervisor.start_child(MaxiTaxi.TaxiSupervisor, {MaxiTaxi.Taxi, taxi_id})
+    Horde.DynamicSupervisor.start_child(MaxiTaxi.TaxiSupervisor, {MaxiTaxi.Taxi, taxi_id})
     |> case do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid
