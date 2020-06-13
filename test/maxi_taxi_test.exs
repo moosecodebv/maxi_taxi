@@ -72,7 +72,34 @@ defmodule MaxiTaxiTest do
   end
 
   test "can reserve and unreserve a taxi" do
-    ### do I want this part? :doubt:
-    ### going to be for Horde
+    assert :ok = MaxiTaxi.Taxi.enter("2", "4")
+
+    # idempotent
+    assert :ok = MaxiTaxi.Taxi.enter("2", "4")
+
+    # rejects an occupied taxi
+    assert {:error, :taxi_occupied} = MaxiTaxi.Taxi.enter("2", "3")
+
+    # idempotent
+    assert :ok = MaxiTaxi.Taxi.exit("2", "3")
+
+    # can exit taxi you have entered
+    assert :ok = MaxiTaxi.Taxi.exit("2", "4")
+
+    # now passenger 3 can enter
+    assert :ok = MaxiTaxi.Taxi.enter("2", "3")
+    assert :ok = MaxiTaxi.Taxi.exit("2", "3")
+  end
+
+  test "reserving and unreserving is consistent in the cluster" do
+    [n1, n2, n3] = LocalCluster.start_nodes("maxicluster-", 3)
+
+    assert :ok = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["2", "4"])
+
+    Process.sleep(200)
+
+    assert {:error, :taxi_occupied} = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["2", "3"])
+    assert {:error, :taxi_occupied} = :rpc.call(n2, MaxiTaxi.Taxi, :enter, ["2", "3"])
+    assert {:error, :taxi_occupied} = :rpc.call(n3, MaxiTaxi.Taxi, :enter, ["2", "3"])
   end
 end

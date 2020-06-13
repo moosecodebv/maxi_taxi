@@ -18,7 +18,9 @@ defmodule MaxiTaxi.Application do
            name: MaxiTaxi.TaxiLocationsCrdt,
            on_diffs: {MaxiTaxi.TaxiLocationsDatabase, :on_diffs, []}
          ]},
-        MaxiTaxi.TaxiLocationsDatabase
+        MaxiTaxi.TaxiLocationsDatabase,
+        {Registry, name: MaxiTaxi.TaxiRegistry, keys: :unique},
+        {DynamicSupervisor, name: MaxiTaxi.TaxiSupervisor, strategy: :one_for_one}
       ] ++ simulated_taxis()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
