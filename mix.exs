@@ -24,7 +24,7 @@ defmodule MaxiTaxi.MixProject do
   defp deps do
     [
       {:libcluster, "~> 3.2"},
-      {:delta_crdt, "~> 0.5.10"},
+      {:delta_crdt, path: "~/Code/delta_crdt", override: true},
       {:horde, "~> 0.8.0-rc.1"},
       {:local_cluster, "~> 1.1", only: :test},
       {:schism, "~> 1.0", only: :test}

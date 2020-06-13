@@ -30,16 +30,18 @@ defmodule MaxiTaxiTest do
   end
 
   test "taxi locations database works across multiple nodes" do
-    [n1, _n2, n3] = LocalCluster.start_nodes("maxi-cluster-", 3)
+    [n1, _n2, n3] = LocalCluster.start_nodes("maxi-cluster-0", 3)
 
     :ok = :rpc.call(n1, TaxiLocationsDatabase, :update, ["1", {0.01, 0.01}])
+    Process.sleep(50)
     assert {:ok, "1"} = :rpc.call(n3, TaxiLocationsDatabase, :find, [{0.01, 0.01}])
   end
 
   test "taxi locations have a TTL of 2s" do
-    [n1, _n2, n3] = LocalCluster.start_nodes("maxi-cluster-", 3)
+    [n1, _n2, n3] = LocalCluster.start_nodes("maxi-cluster-1", 3)
 
     :ok = :rpc.call(n1, TaxiLocationsDatabase, :update, ["1", {0.01, 0.01}])
+    Process.sleep(50)
     assert {:ok, "1"} = :rpc.call(n3, TaxiLocationsDatabase, :find, [{0.01, 0.01}])
 
     Process.sleep(2500)
@@ -49,7 +51,7 @@ defmodule MaxiTaxiTest do
 
   # TODO this should go in a different branch
   test "the database recovers after a netsplit" do
-    [n1, n2, n3] = LocalCluster.start_nodes("maxi-cluster-", 3)
+    [n1, n2, n3] = LocalCluster.start_nodes("maxi-cluster-2", 3)
 
     :ok = :rpc.call(n1, TaxiLocationsDatabase, :update, ["1", {0.01, 0.01}])
     Process.sleep(200)
@@ -72,6 +74,7 @@ defmodule MaxiTaxiTest do
   end
 
   test "can reserve and unreserve a taxi" do
+    Process.sleep(100)
     assert :ok = MaxiTaxi.Taxi.enter("2", "4")
 
     # idempotent
@@ -92,14 +95,43 @@ defmodule MaxiTaxiTest do
   end
 
   test "reserving and unreserving is consistent in the cluster" do
-    [n1, n2, n3] = LocalCluster.start_nodes("maxicluster-", 3)
+    [n1, n2, n3] = LocalCluster.start_nodes("maxicluster-3", 3)
+
+    Process.sleep(100)
 
     assert :ok = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["2", "4"])
 
-    Process.sleep(200)
+    Process.sleep(1000)
 
+    assert "4" = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["2"])
+    assert "4" = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["2"])
+    assert "4" = :rpc.call(n3, MaxiTaxi.Taxi, :which_customer, ["2"])
     assert {:error, :taxi_occupied} = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["2", "3"])
     assert {:error, :taxi_occupied} = :rpc.call(n2, MaxiTaxi.Taxi, :enter, ["2", "3"])
     assert {:error, :taxi_occupied} = :rpc.call(n3, MaxiTaxi.Taxi, :enter, ["2", "3"])
+  end
+
+  test "can recover from a netsplit" do
+    [n1, n2, n3] = LocalCluster.start_nodes("maxicluster-4", 3)
+
+    Schism.partition([n2])
+
+    Process.sleep(50)
+
+    assert :ok = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["3", "4"])
+    assert :ok = :rpc.call(n2, MaxiTaxi.Taxi, :enter, ["3", "9"])
+
+    # during network partition, multiple truths are possible
+    assert "4" = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["3"])
+    assert "9" = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["3"])
+
+    Schism.heal([n1, n2, n3])
+
+    Process.sleep(200)
+
+    # after the partition is healed, only one truth persists
+
+    assert taxi_id = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["3"])
+    assert ^taxi_id = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["3"])
   end
 end

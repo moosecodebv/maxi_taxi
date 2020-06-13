@@ -14,7 +14,7 @@ defmodule MaxiTaxi.Application do
         {DeltaCrdt,
          [
            crdt: DeltaCrdt.AWLWWMap,
-           sync_interval: 5,
+           sync_interval: 20,
            name: MaxiTaxi.TaxiLocationsCrdt,
            on_diffs: {MaxiTaxi.TaxiLocationsDatabase, :on_diffs, []}
          ]},
@@ -22,13 +22,14 @@ defmodule MaxiTaxi.Application do
         {Horde.Registry,
          name: MaxiTaxi.TaxiRegistry,
          keys: :unique,
-         members: :auto,
-         delta_crdt_options: [sync_interval: 10]},
+         delta_crdt_options: [sync_interval: 20],
+         members: [{MaxiTaxi.TaxiRegistry, node()}]},
         {Horde.DynamicSupervisor,
          name: MaxiTaxi.TaxiSupervisor,
          strategy: :one_for_one,
-         members: :auto,
-         delta_crdt_options: [sync_interval: 10]}
+         members: [{MaxiTaxi.TaxiSupervisor, node()}],
+         delta_crdt_options: [sync_interval: 20]},
+        MaxiTaxi.HordeConnector
       ] ++ simulated_taxis()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
