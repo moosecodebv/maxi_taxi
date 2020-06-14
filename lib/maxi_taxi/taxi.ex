@@ -18,19 +18,9 @@ defmodule MaxiTaxi.Taxi do
   end
 
   def init(taxi_id) do
-    Process.flag(:trap_exit, true)
+    {:ok, _pid} = Horde.Registry.register(MaxiTaxi.TaxiRegistry, taxi_id, nil)
+
     {:ok, {taxi_id, nil}}
-  end
-
-  def handle_info({:EXIT, _from, {:name_conflict, _key_value, _registry, pid}}, state) do
-    Logger.warn("process stopped, #{inspect(state)}")
-
-    case state do
-      {_, nil} -> nil
-      {taxi_id, customer_id} -> enter(taxi_id, customer_id)
-    end
-
-    {:stop, :normal, state}
   end
 
   def handle_call({:enter, taxi_id, customer_id}, _from, {taxi_id, nil}) do
@@ -68,19 +58,14 @@ defmodule MaxiTaxi.Taxi do
   end
 
   def child_spec(name) do
-    %{id: name, start: {__MODULE__, :start_link, [name]}, restart: :transient}
+    %{id: nil, start: {__MODULE__, :start_link, [name]}, restart: :permanent}
   end
 
   def start_link(name) do
-    GenServer.start_link(__MODULE__, name, name: via_tuple(name))
+    GenServer.start_link(__MODULE__, name)
     |> case do
       {:ok, pid} -> {:ok, pid}
-      {:error, {:already_started, _pid}} -> :ignore
     end
-  end
-
-  defp via_tuple(name) do
-    {:via, Horde.Registry, {MaxiTaxi.TaxiRegistry, name}}
   end
 
   def ensure_started(taxi_id) do
@@ -93,7 +78,6 @@ defmodule MaxiTaxi.Taxi do
         Horde.DynamicSupervisor.start_child(MaxiTaxi.TaxiSupervisor, {MaxiTaxi.Taxi, taxi_id})
         |> case do
           {:ok, pid} -> pid
-          :ignore -> raise "probably a race condition"
         end
     end
   end
