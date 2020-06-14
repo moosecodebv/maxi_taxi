@@ -18,7 +18,7 @@ defmodule MaxiTaxiTest do
     assert :no_known_location = TaxiLocationsDatabase.fetch("3")
   end
 
-  test "can find taxi locations" do
+  test "can find the nearest taxi" do
     :ok = TaxiLocationsDatabase.update("1", {0.01, 0.01})
     :ok = TaxiLocationsDatabase.update("2", {0.01, 0.02})
     :ok = TaxiLocationsDatabase.update("3", {0.02, 0.01})
@@ -133,5 +133,28 @@ defmodule MaxiTaxiTest do
 
     assert taxi_id = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["3"])
     assert ^taxi_id = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["3"])
+  end
+
+  test "attempts to replicate own state to winning process" do
+    [n1, n2, n3] = LocalCluster.start_nodes("maxicluster-4", 3)
+
+    Schism.partition([n2])
+
+    Process.sleep(50)
+
+    assert nil == :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["3"])
+    Process.sleep(50)
+    assert nil == :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["3"])
+
+    assert :ok = :rpc.call(Enum.random([n1, n2]), MaxiTaxi.Taxi, :enter, ["3", "4"])
+
+    Schism.heal([n1, n2, n3])
+
+    Process.sleep(200)
+
+    # after the partition is healed, only one truth persists
+
+    assert "4" = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["3"])
+    assert "4" = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["3"])
   end
 end

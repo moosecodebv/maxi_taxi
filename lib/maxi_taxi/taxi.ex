@@ -22,8 +22,14 @@ defmodule MaxiTaxi.Taxi do
     {:ok, {taxi_id, nil}}
   end
 
-  def handle_info({:EXIT, _from, {:name_conflict, _key_value, _registry, _pid}}, state) do
+  def handle_info({:EXIT, _from, {:name_conflict, _key_value, _registry, pid}}, state) do
     Logger.warn("process stopped, #{inspect(state)}")
+
+    case state do
+      {_, nil} -> nil
+      {taxi_id, customer_id} -> enter(taxi_id, customer_id)
+    end
+
     {:stop, :normal, state}
   end
 
