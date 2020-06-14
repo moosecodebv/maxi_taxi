@@ -80,20 +80,3 @@ Horde.DynamicSupervisor will ensure that if a node goes down, that the taxi proc
 ## 4. handling network partitions
 
 1. read the docs of Horde and figure out how to handle registry conflicts.
-
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `maxi_taxi` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:maxi_taxi, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/maxi_taxi](https://hexdocs.pm/maxi_taxi).
