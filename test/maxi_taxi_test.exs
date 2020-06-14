@@ -99,44 +99,54 @@ defmodule MaxiTaxiTest do
 
     Process.sleep(100)
 
-    assert :ok = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["2", "4"])
+    assert :ok = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["12", "4"])
 
     Process.sleep(1000)
 
-    assert "4" = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["2"])
-    assert "4" = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["2"])
-    assert "4" = :rpc.call(n3, MaxiTaxi.Taxi, :which_customer, ["2"])
-    assert {:error, :taxi_occupied} = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["2", "3"])
-    assert {:error, :taxi_occupied} = :rpc.call(n2, MaxiTaxi.Taxi, :enter, ["2", "3"])
-    assert {:error, :taxi_occupied} = :rpc.call(n3, MaxiTaxi.Taxi, :enter, ["2", "3"])
+    assert "4" = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["12"])
+    assert "4" = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["12"])
+    assert "4" = :rpc.call(n3, MaxiTaxi.Taxi, :which_customer, ["12"])
+    assert {:error, :taxi_occupied} = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["12", "3"])
+    assert {:error, :taxi_occupied} = :rpc.call(n2, MaxiTaxi.Taxi, :enter, ["12", "3"])
+    assert {:error, :taxi_occupied} = :rpc.call(n3, MaxiTaxi.Taxi, :enter, ["12", "3"])
   end
 
   test "can recover from a netsplit" do
-    [n1, n2, n3] = LocalCluster.start_nodes("maxicluster-4", 3)
+    [n1, n2] = LocalCluster.start_nodes("maxicluster-4", 2)
 
     Schism.partition([n2])
 
-    Process.sleep(50)
+    Process.sleep(100)
 
-    assert :ok = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["3", "4"])
-    assert :ok = :rpc.call(n2, MaxiTaxi.Taxi, :enter, ["3", "9"])
+    assert :ok = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["33", "4"])
+    assert :ok = :rpc.call(n2, MaxiTaxi.Taxi, :enter, ["33", "9"])
+
+    assert :ok = :rpc.call(n1, MaxiTaxi.Taxi, :enter, ["34", "4"])
+    assert :ok = :rpc.call(n2, MaxiTaxi.Taxi, :enter, ["34", "9"])
 
     # during network partition, multiple truths are possible
-    assert "4" = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["3"])
-    assert "9" = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["3"])
+    assert "4" = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["33"])
+    assert "9" = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["33"])
 
-    Schism.heal([n1, n2, n3])
+    assert "4" = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["34"])
+    assert "9" = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["34"])
 
-    Process.sleep(200)
+    Schism.heal([n1, n2])
+
+    Process.sleep(1000)
 
     # after the partition is healed, only one truth persists
 
-    assert taxi_id = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["3"])
-    assert ^taxi_id = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["3"])
+    assert %{active: 2} = Horde.DynamicSupervisor.count_children(MaxiTaxi.TaxiSupervisor)
+
+    assert taxi_id = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["33"])
+    assert ^taxi_id = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["33"])
+    assert taxi_id = :rpc.call(n1, MaxiTaxi.Taxi, :which_customer, ["34"])
+    assert ^taxi_id = :rpc.call(n2, MaxiTaxi.Taxi, :which_customer, ["34"])
   end
 
   test "attempts to replicate own state to winning process" do
-    [n1, n2, n3] = LocalCluster.start_nodes("maxicluster-4", 3)
+    [n1, n2, n3] = LocalCluster.start_nodes("maxicluster-5", 3)
 
     Schism.partition([n2])
 
