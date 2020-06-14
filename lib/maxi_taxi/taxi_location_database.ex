@@ -17,24 +17,7 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
       [:public, :named_table, {:write_concurrency, true}, {:read_concurrency, true}]
     )
 
-    set_neighbours()
-    :net_kernel.monitor_nodes(true)
-
     {:ok, nil}
-  end
-
-  defp set_neighbours() do
-    neighbours =
-      (Node.list() -- [:"manager@127.0.0.1"])
-      |> Enum.map(fn node -> {MaxiTaxi.TaxiLocationsCrdt, node} end)
-
-    DeltaCrdt.set_neighbours(MaxiTaxi.TaxiLocationsCrdt, neighbours)
-  end
-
-  def handle_info({node_change, _node}, state) when node_change in [:nodeup, :nodedown] do
-    # exclude the central test node (manager@127.0.0.1)
-    set_neighbours()
-    {:noreply, state}
   end
 
   @type taxi :: String.t()
@@ -44,29 +27,13 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
 
   @spec update(taxi(), location()) :: :ok
   def update(taxi, location) do
-    :ok =
-      DeltaCrdt.mutate(MaxiTaxi.TaxiLocationsCrdt, :add, [
-        taxi,
-        {location, DateTime.utc_now() |> DateTime.to_unix()}
-      ])
-
-    # :rpc.multicall(:ets, :insert, [
-    #   @table,
-    #   {taxi, location, DateTime.utc_now() |> DateTime.to_unix()}
-    # ])
+    :rpc.multicall(:ets, :insert, [
+      @table,
+      {taxi, location, DateTime.utc_now() |> DateTime.to_unix()}
+    ])
 
     # :ets.insert(@table, {taxi, location})
     :ok
-  end
-
-  def on_diffs(diffs) do
-    Enum.each(diffs, fn
-      {:add, taxi, {location, updated_at}} ->
-        :ets.insert(@table, {taxi, location, updated_at})
-
-      {:remove, taxi} ->
-        :ets.delete(@table, taxi)
-    end)
   end
 
   @spec fetch(taxi()) :: {:ok, location()} | :no_known_location

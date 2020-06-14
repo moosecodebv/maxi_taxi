@@ -11,13 +11,6 @@ defmodule MaxiTaxi.Application do
     children =
       [
         {Cluster.Supervisor, [libcluster_config(), [name: MaxiTaxi.ClusterSupervisor]]},
-        {DeltaCrdt,
-         [
-           crdt: DeltaCrdt.AWLWWMap,
-           sync_interval: 20,
-           name: MaxiTaxi.TaxiLocationsCrdt,
-           on_diffs: {MaxiTaxi.TaxiLocationsDatabase, :on_diffs, []}
-         ]},
         MaxiTaxi.TaxiLocationsDatabase,
         {Registry, name: MaxiTaxi.TaxiRegistry, keys: :unique},
         {DynamicSupervisor, name: MaxiTaxi.TaxiSupervisor, strategy: :one_for_one}
