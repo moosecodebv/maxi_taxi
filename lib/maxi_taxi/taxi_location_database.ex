@@ -27,12 +27,7 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
 
   @spec update(taxi(), location()) :: :ok
   def update(taxi, location) do
-    :rpc.multicall(:ets, :insert, [
-      @table,
-      {taxi, location, DateTime.utc_now() |> DateTime.to_unix()}
-    ])
-
-    # :ets.insert(@table, {taxi, location})
+    :ets.insert(@table, {taxi, location, DateTime.utc_now() |> DateTime.to_unix()})
     :ok
   end
 
@@ -92,8 +87,6 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
   end
 
   def clear() do
-    # :ok = DeltaCrdt.mutate(MaxiTaxi.TaxiLocationsCrdt, :clear, [])
-    # :rpc.multicall(:ets, :delete_all_objects, [@table])
-    # :ets.delete_all_objects(@table)
+    :ets.delete_all_objects(@table)
   end
 end

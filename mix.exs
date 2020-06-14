@@ -23,8 +23,6 @@ defmodule MaxiTaxi.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:libcluster, "~> 3.2"},
-      {:delta_crdt, path: "~/Code/delta_crdt", override: true},
       {:local_cluster, "~> 1.1", only: :test},
       {:schism, "~> 1.0", only: :test}
     ]
