@@ -18,7 +18,7 @@ defmodule MaxiTaxi.Taxi do
   end
 
   def init(taxi_id) do
-    {:ok, _pid} = Horde.Registry.register(MaxiTaxi.TaxiRegistry, taxi_id, nil)
+    {:ok, _pid} = Registry.register(MaxiTaxi.TaxiRegistry, taxi_id, nil)
 
     {:ok, {taxi_id, nil}}
   end
@@ -69,13 +69,13 @@ defmodule MaxiTaxi.Taxi do
   end
 
   def ensure_started(taxi_id) do
-    Horde.Registry.lookup(MaxiTaxi.TaxiRegistry, taxi_id)
+    Registry.lookup(MaxiTaxi.TaxiRegistry, taxi_id)
     |> case do
       [{pid, _}] ->
         pid
 
       [] ->
-        Horde.DynamicSupervisor.start_child(MaxiTaxi.TaxiSupervisor, {MaxiTaxi.Taxi, taxi_id})
+        DynamicSupervisor.start_child(MaxiTaxi.TaxiSupervisor, {MaxiTaxi.Taxi, taxi_id})
         |> case do
           {:ok, pid} -> pid
         end
