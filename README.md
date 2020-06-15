@@ -17,6 +17,15 @@ The following operations will be supported:
 
 ## Tutorial
 
+The tutorial is split into 4 branches:
+- `exercise_1`
+- `exercise_2`
+- `exercise_3`
+- `exercise_4`
+
+You can start with `exercise_1`. If you have completed the exercises, then you can continue in that branch with your own solutions, or you can choose to switch to the `exercise_2` branch to continue.
+
+The topics covered are:
 1. libcluster & :rpc
 2. Distributed location database
 3. Horde
