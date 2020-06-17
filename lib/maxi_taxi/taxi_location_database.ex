@@ -27,7 +27,7 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
 
   @spec update(taxi(), location()) :: :ok
   def update(taxi, location) do
-    :ets.insert(@table, {taxi, location, DateTime.utc_now() |> DateTime.to_unix()})
+    :ets.insert(@table, {taxi, location})
     :ok
   end
 
@@ -35,7 +35,7 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
   def fetch(taxi) do
     case :ets.lookup(@table, taxi) do
       [] -> :no_known_location
-      [{^taxi, location, _updated_at}] -> {:ok, location}
+      [{^taxi, location}] -> {:ok, location}
     end
   end
 
@@ -48,14 +48,9 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
     # just using euclidean distance here because it's simple. This works at the equator but will work less well the nearer one gets to the poles.
     # filter for all taxis within 0.01 degree (approx 1.1km at the equator) and then sort on distance
 
-    updated_since =
-      DateTime.utc_now()
-      |> DateTime.add(-2, :second)
-      |> DateTime.to_unix()
-
     match_spec = [
       {
-        {:"$1", {:"$2", :"$3"}, :"$4"},
+        {:"$1", {:"$2", :"$3"}},
         [
           {:is_float, :"$2"},
           {:is_float, :"$3"},
@@ -63,8 +58,7 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
           {:>, :"$2", search_lat - 0.01},
           {:<, :"$2", search_lat + 0.01},
           {:>, :"$3", search_lon - 0.01},
-          {:<, :"$3", search_lon + 0.01},
-          {:>, :"$4", updated_since}
+          {:<, :"$3", search_lon + 0.01}
         ],
         [:"$_"]
       }
@@ -75,7 +69,7 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
         :no_taxi_found
 
       locations ->
-        {taxi, _coords, _updated_at} =
+        {taxi, _coords} =
           Enum.sort_by(locations, fn {_taxi, {lat, lon}, _updated_at} ->
             (:math.pow(lat - search_lat, 2) + :math.pow(lon - search_lon, 2))
             |> :math.sqrt()
