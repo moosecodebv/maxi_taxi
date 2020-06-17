@@ -13,6 +13,8 @@ defmodule MaxiTaxiTest do
     assert :ok = TaxiLocationsDatabase.update("2", {1, 1})
     assert :ok = TaxiLocationsDatabase.update("1", {2, 1})
 
+    Process.sleep(10)
+
     assert {:ok, {1, 1}} = TaxiLocationsDatabase.fetch("2")
     assert {:ok, {2, 1}} = TaxiLocationsDatabase.fetch("1")
     assert :no_known_location = TaxiLocationsDatabase.fetch("3")

@@ -8,7 +8,7 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
   end
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, nil)
+    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
   def init(_) do
@@ -20,6 +20,12 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
     {:ok, nil}
   end
 
+  def handle_info({:update, taxi, location, updated_at}, state) do
+    :ets.insert(@table, {taxi, location, updated_at})
+
+    {:noreply, state}
+  end
+
   @type taxi :: String.t()
   @type lat :: float()
   @type lon :: float()
@@ -27,10 +33,17 @@ defmodule MaxiTaxi.TaxiLocationsDatabase do
 
   @spec update(taxi(), location()) :: :ok
   def update(taxi, location) do
-    :rpc.multicall(:ets, :insert, [
-      @table,
-      {taxi, location, DateTime.utc_now() |> DateTime.to_unix()}
-    ])
+    for node <- [node() | Node.list()] do
+      send(
+        {__MODULE__, node},
+        {:update, taxi, location, DateTime.utc_now() |> DateTime.to_unix()}
+      )
+    end
+
+    # :rpc.multicall(:ets, :insert, [
+    #   @table,
+    #   {taxi, location, DateTime.utc_now() |> DateTime.to_unix()}
+    # ])
 
     # :ets.insert(@table, {taxi, location})
     :ok
